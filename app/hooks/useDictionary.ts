@@ -26,6 +26,9 @@ export default function useDictionary() {
       alignFullWidth: t("Full width"),
       bulletList: t("Bulleted list"),
       checkboxList: t("Todo list"),
+      showCompleted: (count: number) =>
+        t("Show {{ count }} completed", { count }),
+      hideCompleted: t("Hide completed"),
       codeBlock: t("Code block"),
       codeCopied: t("Copied to clipboard"),
       codeInline: t("Code"),
@@ -41,6 +44,7 @@ export default function useDictionary() {
       deleteRow: t("Delete"),
       deleteTable: t("Delete table"),
       deleteAttachment: t("Delete file"),
+      previewAttachment: t("Show preview"),
       dimensions: `${t("Width")} × ${t("Height")}`,
       download: t("Download"),
       downloadAttachment: t("Download file"),
@@ -120,6 +124,7 @@ export default function useDictionary() {
       uploadImage: t("Upload an image"),
       formattingControls: t("Formatting controls"),
       distributeColumns: t("Distribute columns"),
+      wrapText: t("Wrap text"),
     }),
     [t]
   );

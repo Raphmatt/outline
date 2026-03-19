@@ -59,6 +59,17 @@ export class EditorStyleHelper {
   /** Toggle block folded state */
   static readonly toggleBlockFolded = "folded";
 
+  // Checkbox Lists
+
+  /** Checkbox list wrapper */
+  static readonly checklistWrapper = "checklist-wrapper";
+
+  /** Toggle button for showing/hiding completed items */
+  static readonly checklistCompletedToggle = "checklist-completed-toggle";
+
+  /** State when completed items are hidden */
+  static readonly checklistCompletedHidden = "completed-hidden";
+
   // Tables
 
   /** Table wrapper */
@@ -90,6 +101,9 @@ export class EditorStyleHelper {
 
   /** Shadow on the left side of the table */
   static readonly tableShadowLeft = "table-shadow-left";
+
+  /** Sticky header state */
+  static readonly tableStickyHeader = "table-sticky-header";
 
   /** Drop indicator for table drag and drop */
   static readonly tableDragDropIndicator = "table-drag-drop-indicator";

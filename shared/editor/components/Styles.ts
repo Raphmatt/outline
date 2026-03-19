@@ -7,7 +7,7 @@ import { EditorStyleHelper } from "../styles/EditorStyleHelper";
 import { videoStyle } from "./Video";
 
 export type Props = {
-  rtl: boolean;
+  $rtl: boolean;
   readOnly?: boolean;
   readOnlyWriteCheckboxes?: boolean;
   commenting?: boolean;
@@ -247,11 +247,13 @@ const codeBlockStyle = (props: Props) => css`
   }
 
   .token.deleted {
-    text-decoration: line-through;
+    color: ${props.theme.textDiffDeleted};
+    background-color: ${props.theme.textDiffDeletedBackground};
   }
 
   .token.inserted {
-    border-bottom: 1px dotted ${props.theme.codeInserted};
+    color: ${props.theme.textDiffInserted};
+    background-color: ${props.theme.textDiffInsertedBackground};
     text-decoration: none;
   }
 
@@ -1099,7 +1101,7 @@ h6:not(.placeholder)::before {
 }
 
 .with-emoji {
-  margin-${props.rtl ? "right" : "left"}: -1em;
+  margin-${props.$rtl ? "right" : "left"}: -1em;
 }
 
 .emoji img {
@@ -1251,13 +1253,16 @@ ${
   &:not([data-resolved]):not([data-draft]), &[data-draft][data-user-id="${
     props.userId ?? ""
   }"]  {
-    border-bottom: 2px solid ${props.theme.commentMarkBackground};
+    text-decoration: underline 2px ${props.theme.commentMarkBackground};
     transition: background 100ms ease-in-out;
-    border-radius: 2px;
 
     &:hover {
       ${props.readOnly ? "cursor: var(--pointer);" : ""}
       background: ${props.theme.commentMarkBackground};
+
+      * {
+        background: transparent !important;
+      }
     }
   }
 }
@@ -1481,6 +1486,55 @@ ol li {
   }
 }
 
+.${EditorStyleHelper.checklistWrapper} {
+  position: relative;
+  margin: 1em 0;
+
+  .${EditorStyleHelper.checklistWrapper} {
+    position: static;
+    margin: 0;
+  }
+}
+
+.${EditorStyleHelper.checklistCompletedToggle} {
+  position: absolute;
+  top: -8px;
+  right: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: ${props.theme.background};
+  border: 1px solid ${props.theme.buttonNeutralBorder};
+  border-radius: 6px;
+  color: ${props.theme.textSecondary};
+  cursor: var(--pointer);
+  user-select: none;
+  z-index: 1;
+  opacity: 0;
+  transition: all 100ms ease-in-out;
+
+  &:${hover} {
+    background: ${props.theme.buttonNeutralBackground};
+    color: ${props.theme.text};
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.${EditorStyleHelper.checklistWrapper}:${hover} .${EditorStyleHelper.checklistCompletedToggle},
+.${EditorStyleHelper.checklistWrapper}:focus-within .${EditorStyleHelper.checklistCompletedToggle} {
+  opacity: 1;
+}
+
+.${EditorStyleHelper.checklistWrapper}.${EditorStyleHelper.checklistCompletedHidden} .${EditorStyleHelper.checklistCompletedToggle} {
+  opacity: 1;
+}
+
+.${EditorStyleHelper.checklistWrapper}.${EditorStyleHelper.checklistCompletedHidden} ul.checkbox_list > li.checked {
+  display: none;
+}
+
 ul.checkbox_list {
   padding: 0;
   margin-left: -24px;
@@ -1682,6 +1736,7 @@ mark {
 
 .code-block {
   position: relative;
+  font-size: 90%;
 }
 
 .code-block[data-language=none],
@@ -1716,6 +1771,17 @@ mark {
     overflow: hidden;
     position: relative;
   }
+
+  &.ProseMirror-selectednode {
+    outline: none;
+
+    & + .mermaid-diagram-wrapper {
+      &:not(.empty) {
+        cursor: zoom-in;
+      }
+      outline: 2px solid ${props.theme.selected};
+    }
+  }
 }
 
 .ProseMirror[contenteditable="false"] .code-block[data-language=mermaid],
@@ -1744,6 +1810,13 @@ mark {
     }
 }
 
+.code-block.with-line-wrap {
+  pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+}
+
 .code-block.with-line-numbers {
   pre {
     padding-left: calc(var(--line-number-gutter-width, 0) * 1em + 1.5em);
@@ -1759,7 +1832,6 @@ mark {
     word-break: break-all;
     white-space: break-spaces;
     font-family: ${props.theme.fontFamilyMono};
-    font-size: 13px;
     line-height: 1.4em;
     color: ${props.theme.textTertiary};
     background: ${props.theme.codeBackground};
@@ -1812,7 +1884,6 @@ pre {
 
   -webkit-font-smoothing: initial;
   font-family: ${props.theme.fontFamilyMono};
-  font-size: 13px;
   direction: ltr;
   text-align: left;
   white-space: pre;
@@ -1828,7 +1899,7 @@ pre {
   color: ${props.theme.code};
 
   code {
-    font-size: 13px;
+    font-size: inherit;
     background: none;
     padding: 0;
     border: 0;
@@ -1869,9 +1940,18 @@ table {
   }
 
   th {
-    background: ${transparentize(0.75, props.theme.divider)};
+    background: ${props.theme.background};
+    background-image: linear-gradient(
+      ${transparentize(0.75, props.theme.divider)},
+      ${transparentize(0.75, props.theme.divider)}
+    );
     color: ${props.theme.textSecondary};
     font-weight: 500;
+  }
+
+  tr:first-child {
+    position: relative;
+    z-index: 2;
   }
 
   tr:first-child th,
@@ -1899,8 +1979,10 @@ table {
     padding: 4px 0;
   }
 
-  td[data-bgcolor] {
+  td[data-bgcolor],
+  th[data-bgcolor] {
     color: var(--cell-text-color);
+    background: linear-gradient(var(--cell-bg-color), var(--cell-bg-color)), linear-gradient(${props.theme.background}, ${props.theme.background});
 
     p, a, p a {
       color: var(--cell-text-color, inherit);
@@ -1913,26 +1995,12 @@ table {
   }
 
   .selectedCell {
-    ${
-      props.readOnly
-        ? "background: inherit;"
-        : `/* Using box-shadow inset instead of background to allow overlay on cell background colors */
-    box-shadow: inset 0 0 0 9999px ${props.theme.tableSelectedBackground};`
-    }
+    /* Using box-shadow inset instead of background to allow overlay on cell background colors */
+    box-shadow: inset 0 0 0 9999px ${props.theme.tableSelectedBackground};
 
     /* fixes Firefox background color painting over border:
       * https://bugzilla.mozilla.org/show_bug.cgi?id=688556 */
     background-clip: padding-box;
-  }
-
-  .${EditorStyleHelper.tableAddRow},
-  .${EditorStyleHelper.tableAddColumn},
-  .${EditorStyleHelper.tableGrip},
-  .${EditorStyleHelper.tableGripColumn},
-  .${EditorStyleHelper.tableGripRow} {
-    @media print {
-      display: none;
-    }
   }
 
   .${EditorStyleHelper.tableAddRow},
@@ -2155,6 +2223,16 @@ table {
       opacity: 0.5;
     }
   }
+
+  .${EditorStyleHelper.tableAddRow},
+  .${EditorStyleHelper.tableAddColumn},
+  .${EditorStyleHelper.tableGrip},
+  .${EditorStyleHelper.tableGripColumn},
+  .${EditorStyleHelper.tableGripRow} {
+    @media print {
+      display: none;
+    }
+  }
 }
 
 .${EditorStyleHelper.tableDragDropIndicator} {
@@ -2229,6 +2307,28 @@ table {
 
 .${EditorStyleHelper.table} {
   position: relative;
+}
+
+.${EditorStyleHelper.tableStickyHeader} {
+  tr:first-child th {
+    transform: translateY(calc(var(--header-offset, 64px) + var(--sticky-scroll-offset, 0px)));
+    border-bottom: 1px solid ${props.theme.divider};
+
+    // Mask content scrolling past the top of the header
+    box-shadow: 0 -1px 0 ${props.theme.divider};
+    border-radius: 0 !important;
+
+    .${EditorStyleHelper.tableGripColumn},
+    .${EditorStyleHelper.tableAddColumn},
+    .${EditorStyleHelper.tableAddRow},
+    .${EditorStyleHelper.tableGrip} {
+      display: none;
+    }
+  }
+
+  .${EditorStyleHelper.tableGrip} {
+    display: none;
+  }
 }
 
 .${EditorStyleHelper.tableScrollable} {
@@ -2318,7 +2418,7 @@ table {
   border: 0;
   padding: 0;
   margin-top: 1px;
-  margin-${props.rtl ? "right" : "left"}: -28px;
+  margin-${props.$rtl ? "right" : "left"}: -28px;
   border-radius: 4px;
 
   &:hover,
@@ -2508,6 +2608,7 @@ del {
     }
     flex-grow: 1;
     overflow: unset;
+    min-width: 0;
   }
 }
 `;
