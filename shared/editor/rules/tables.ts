@@ -1,10 +1,25 @@
 import type MarkdownIt from "markdown-it";
+import type { StateCore } from "markdown-it";
 
 const BREAK_REGEX = /(?<=^|[^\\])\\n/;
 const BR_TAG_REGEX = /<br\s*\/?>/gi;
 // Matches checkbox syntax with optional list prefix: "- [x] Task" or "[x] Task"
 // Stops at <br> or newline to handle multiple checkboxes in a cell
 const CHECKBOX_REGEX = /^(?:-\s*)?\[(X|\s|_|-)\]\s([^<\n]*)?/i;
+// Matches bullet list markers: *, -, or + followed by a space
+const BULLET_REGEX = /^[*\-+]\s(.*)/;
+
+/** Create an inline token with parsed inline content (links, bold, etc). */
+function makeInlineToken(state: StateCore, content: string) {
+  const inline = new state.Token("inline", "", 0);
+  inline.content = content;
+
+  // Parse inline markdown so links, bold, etc. are resolved
+  const parsed = state.md.parseInline(content, state.env);
+  inline.children = parsed[0]?.children ?? [];
+
+  return inline;
+}
 
 export default function markdownTables(md: MarkdownIt): void {
   // insert a new rule after the "inline" rules are parsed
@@ -134,15 +149,7 @@ export default function markdownTables(md: MarkdownIt): void {
             }
             newTokens.push(itemOpen);
             newTokens.push(new state.Token("paragraph_open", "p", 1));
-
-            // Create inline token for the label
-            const labelInline = new state.Token("inline", "", 0);
-            labelInline.content = item.label;
-            const textToken = new state.Token("text", "", 0);
-            textToken.content = item.label;
-            labelInline.children = [textToken];
-            newTokens.push(labelInline);
-
+            newTokens.push(makeInlineToken(state, item.label));
             newTokens.push(new state.Token("paragraph_close", "p", -1));
             newTokens.push(new state.Token("checkbox_item_close", "li", -1));
           }
@@ -153,16 +160,48 @@ export default function markdownTables(md: MarkdownIt): void {
           // Replace the inline token with our new structure
           tokens.splice(i + 1, closeIndex - i - 1, ...newTokens);
         } else {
-          // markdown-it table parser does not return paragraphs inside the cells
-          // but prosemirror requires them, so we add 'em in here.
-          // Insert closing token first (before closeIndex shifts)
-          tokens.splice(
-            closeIndex,
-            0,
-            new state.Token("paragraph_close", "p", -1)
-          );
-          // Then insert opening token
-          tokens.splice(i + 1, 0, new state.Token("paragraph_open", "p", 1));
+          // Check if the cell content looks like a bullet list
+          // (e.g. "* Item1 <br> * Item2" as serialized by the table serializer)
+          const nonEmptyParts = parts.filter((p) => p.trim());
+          const bulletItems: string[] = [];
+
+          for (const part of nonEmptyParts) {
+            const match = part.trim().match(BULLET_REGEX);
+            if (!match) {
+              bulletItems.length = 0;
+              break;
+            }
+            bulletItems.push(match[1]);
+          }
+
+          if (bulletItems.length > 0) {
+            const newTokens: InstanceType<typeof state.Token>[] = [];
+
+            newTokens.push(new state.Token("bullet_list_open", "ul", 1));
+
+            for (const text of bulletItems) {
+              newTokens.push(new state.Token("list_item_open", "li", 1));
+              newTokens.push(new state.Token("paragraph_open", "p", 1));
+              newTokens.push(makeInlineToken(state, text));
+              newTokens.push(new state.Token("paragraph_close", "p", -1));
+              newTokens.push(new state.Token("list_item_close", "li", -1));
+            }
+
+            newTokens.push(new state.Token("bullet_list_close", "ul", -1));
+
+            tokens.splice(i + 1, closeIndex - i - 1, ...newTokens);
+          } else {
+            // markdown-it table parser does not return paragraphs inside the cells
+            // but prosemirror requires them, so we add 'em in here.
+            // Insert closing token first (before closeIndex shifts)
+            tokens.splice(
+              closeIndex,
+              0,
+              new state.Token("paragraph_close", "p", -1)
+            );
+            // Then insert opening token
+            tokens.splice(i + 1, 0, new state.Token("paragraph_open", "p", 1));
+          }
         }
       }
     }
